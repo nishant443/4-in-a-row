@@ -1,0 +1,61 @@
+# Node dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+Frontend/dist/
+Backend/dist/
+.vite/
+.esbuild/
+.cache/
+coverage/
+
+# Environment files (do NOT commit secrets)
+.env
+.env.*.local
+**/.env
+**/.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Docker
+docker-compose.override.yml
+docker-compose.*.local
+**/docker-compose.override.yml
+
+# Archives / packages / temp
+*.tgz
+*.zip
+tmp/
+temp/
+
+# Test / tooling
+nyc_output/
+jest-cache/
+.vitest/
+
+# Misc
+*.local
+*.pid
+*.seed
+
+# Optional: ignore lockfiles for specific workflows (uncomment if desired)
+# pnpm-lock.yaml
+# yarn.lock
