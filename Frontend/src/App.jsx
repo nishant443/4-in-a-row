@@ -42,8 +42,8 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-8 bg-gradient-to-b from-sky-900 to-indigo-900 text-gray-100">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen px-2 py-8 sm:px-6 bg-gradient-to-b from-sky-900 to-indigo-900 text-gray-100">
+      <div className="max-w-5xl mx-auto">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-extrabold">4 in a Row</h1>
           <div className="hidden sm:block text-sm opacity-80">Have fun — connect four!</div>
