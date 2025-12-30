@@ -55,8 +55,8 @@ export default function App() {
               {!username && <div className="mb-4"><UsernameForm onSubmit={handleJoin} /></div>}
 
               {game ? (
-                <Board board={game.board} onMove={handleMove} />
-              ) : (
+                <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} />
+                    ) : (
                 <div className="py-12 text-center text-gray-300">Waiting for match... Join to start</div>
               )}
 

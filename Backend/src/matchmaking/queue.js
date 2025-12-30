@@ -18,7 +18,12 @@ function enqueuePlayer(username, onBotTimeout) {
         const index = waitingQueue.indexOf(username);
         if (index !== -1) {
             waitingQueue.splice(index, 1);
-            onBotTimeout(username); // start bot game
+            console.log("No opponent found for", username, "– starting bot game");
+            try {
+                onBotTimeout(username); // start bot game
+            } catch (err) {
+                console.error("Error starting bot game for", username, err);
+            }
         }
     }, BOT_TIMEOUT);
 
