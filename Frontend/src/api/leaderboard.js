@@ -1,8 +1,13 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_BACKEND_URL;
 
 export async function fetchLeaderboard() {
-    const res = await axios.get(`${API_URL}/leaderboard`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/leaderboard`);
+        return res.data;
+    } catch (err) {
+        console.error("Leaderboard fetch failed:", err);
+        return [];
+    }
 }

@@ -13,8 +13,9 @@ async function start() {
   const server = http.createServer(app);
   initSocket(server);
 
-  server.listen(5000, () => {
-    console.log("Game server running on port 5000");
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    console.log(`Game server running on port ${PORT}`);
   });
 }
 

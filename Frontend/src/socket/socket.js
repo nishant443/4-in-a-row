@@ -7,10 +7,10 @@ export const socket = io(BACKEND_URL, {
 });
 
 export function connectSocket(username) {
-    socket.connect();
-    socket.emit("JOIN", { username });
+  socket.connect();
+  socket.emit("JOIN", { username });
 }
 
 export function sendMove(gameId, col) {
-    socket.emit("MOVE", { gameId, col });
+  socket.emit("MOVE", { gameId, col });
 }
