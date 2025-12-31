@@ -2,10 +2,17 @@ const { userToGame } = require("../game/gameManager");
 const { handleDisconnect, handleReconnect } = require("../game/reconnect");
 const { updateLeaderboard } = require("../services/leaderboard");
 const { sendGameEvent } = require("../services/analytics");
+const { removeFromQueue } = require("../matchmaking/queue");
 
 function onDisconnect(socket) {
     const username = socket.username;
     const gameId = userToGame.get(username);
+
+    // If user wasn't in an active game, they may be waiting in the matchmaking queue — remove them
+    if (!gameId) {
+        removeFromQueue(username);
+        return;
+    }
 
     if (gameId) {
         handleDisconnect(gameId, username, (game, winner) => {

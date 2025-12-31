@@ -4,7 +4,9 @@ const { onDisconnect, onReconnect } = require("../sockets/player.socket");
 
 function initSocket(server) {
     const io = new Server(server, {
-        cors: { origin: "*" }
+        cors: { origin: "*" },
+        pingInterval: 25000,   // send heartbeat every 25s
+        pingTimeout: 60000    // wait 60s before disconnect
     });
 
     io.on("connection", socket => {
