@@ -1,211 +1,369 @@
- # 4 in a Row — Project README
+# 🎯 4-in-a-Row — Real-Time Multiplayer Game
 
- This repository contains a real-time multiplayer Connect Four style game with a Node.js backend and a React + Vite frontend. It includes socket-based gameplay, analytics via Kafka, persistent game storage (MongoDB), matchmaking, and a leaderboard service.
+A real-time Connect-Four multiplayer game built with Node.js, WebSockets, MongoDB, and Kafka. Players can compete head-to-head or face off against a competitive AI bot that thinks strategically.
 
- ---
+---
 
- ## Contents / High-level summary
+## 🌐 Live Demo
 
- - `Backend/` — Express + Socket.IO server and game logic
- - `Frontend/` — Vite React app with Tailwind CSS UI
- - `kafka/` — lightweight analytics producer/consumer scripts used by the project
- - `docker-compose.yml` — optional composition for local services (Mongo, Kafka, etc.)
+**Frontend:** [https://four-in-a-row-1-ugzk.onrender.com](https://four-in-a-row-1-ugzk.onrender.com)  
+**Backend:** [https://four-in-a-row-ve50.onrender.com](https://four-in-a-row-ve50.onrender.com)
 
- ## Project structure (detailed)
+---
 
- - Backend/
-   - `package.json` — server dependencies and scripts
-   - `src/`
-     - `app.js` — main Express app (routes, middleware)
-     - `server.js` — HTTP server + Socket.IO wiring
-     - `config/` — configuration modules
-       - `db.js` — database connection (Mongo)
-       - `kafka.js` — Kafka producer/consumer config
-       - `socket.js` — socket options and helpers
-     - `game/` — core gameplay logic
-       - `boardLogic.js` — board representation, `dropDisc`, win/draw detection
-       - `botEngine.js` — simple bot move strategy
-       - `gameManager.js` — in-memory game registry (create/get/remove games)
-       - `reconnect.js` — reconnect handling and timers
-     - `matchmaking/`
-       - `queue.js` — simple FIFO match queue and bot fallback
-     - `models/` — Mongoose schemas
-       - `Game.js` — stores finished games and move history
-       - `Player.js`, `Analytics.js` — other models used by services
-     - `routes/` — optional REST endpoints (e.g. leaderboard fetch)
-     - `services/` — small service layers
-       - `analytics.js` — pushes analytics events (via Kafka)
-       - `leaderboard.js` — updates/reads players' win counts
-     - `sockets/` — socket handlers
-       - `game.socket.js` — `JOIN`, `MOVE`, `GAME_UPDATE`, `GAME_OVER` handling
+## 📋 Table of Contents
 
- - Frontend/
-   - `package.json` — UI dependencies and scripts
-   - `index.html`, `vite.config.js` — Vite setup
-   - `src/`
-     - `main.jsx`, `App.jsx` — React entry + app layout
-     - `components/` — UI components: `Board.jsx`, `Cell.jsx`, `GameStatus.jsx`, `Leaderboard.jsx`, `UsernameForm.jsx`
-     - `socket/` — client socket wrapper (`socket.js`)
-     - `api/` — small fetch wrappers for leaderboard endpoints
-     - `index.css`, `App.css` — Tailwind import and custom styles
-   - `tailwind.config.js` — Tailwind configuration
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [Game Logic](#-game-logic)
+- [Bot Strategy](#-bot-strategy)
+- [Engineering Decisions](#-engineering-decisions)
 
- - `kafka/`
-   - `analyticsService.js`, `consumer.js` — example scripts used locally for analytics
+---
 
- ---
+## ✨ Features
 
- ## Backend — architecture and detailed explanation
+### 🎮 Core Gameplay
+- **7×6 Connect-Four Grid** — Classic game board
+- **Real-Time Multiplayer** — WebSocket-powered turn-based gameplay
+- **Player vs Player** — Compete against real opponents
+- **Player vs Bot** — AI opponent joins if no player found within 30 seconds
+- **Win Detection** — Horizontal, vertical, and diagonal connections
+- **Draw Detection** — Automatic detection when board is full
 
- The backend uses a mixture of HTTP endpoints and Socket.IO for real-time gameplay. Key concepts:
+### 🤖 Competitive AI Bot
+The bot plays strategically by:
+- **Winning when possible** — Takes opportunities to complete 4-in-a-row
+- **Blocking player wins** — Prevents opponent from winning
+- **Strategic positioning** — Prioritizes center columns and high-potential moves
+- **No random moves** — Every move is calculated
 
- - Socket-based matchmaking and gameplay
-   - Clients connect via Socket.IO and emit `JOIN` to enter the matchmaking queue.
-   - The server pairs players (or pairs with the `BOT`) and creates a `game` object (in-memory).
-   - Game events are broadcast to players using `GAME_UPDATE` for the current board and `GAME_OVER` when finished.
-   - Moves are sent as `MOVE` events with payload `{ gameId, col }`. The server uses `dropDisc(board, col, player)` to place the disc at the lowest available row in that column.
+### 🔄 Reconnection System
+- Players can disconnect and rejoin within **30 seconds**
+- Game state is preserved during disconnection
+- Automatic forfeit if player doesn't return in time
+- Opponent or bot wins by default on forfeit
 
- - Game lifecycle (high level)
-   1. Player A joins → placed in queue
-   2. Player B joins → server creates a game via `gameManager.createGame`
-   3. Server emits `MATCH_FOUND` and initial `GAME_UPDATE`
-   4. Players emit `MOVE` events; server validates turn and uses `dropDisc` to apply the move
-   5. After each move server checks `checkWin` and `isDraw`
-   6. If win/draw → server persists the finished `Game` in MongoDB and emits final `GAME_UPDATE` and `GAME_OVER` including final board
+### 🏆 Leaderboard
+Tracks player statistics:
+- Total wins
+- Total losses
+- Games played
+- Real-time updates displayed in frontend
 
- - Persistence and analytics
-   - Finished games are inserted into MongoDB (`models/Game.js`) including move list and metadata (duration, players, winner).
-   - The `services/analytics` publishes events (e.g., `GAME_END`) to Kafka for downstream processing or dashboards. The `kafka/` folder contains small consumer examples.
+### 📊 Analytics (Kafka Integration)
+Event-driven analytics tracking:
+- Game completion events
+- Player statistics
+- Game duration
+- Move counts
+- Winner information
 
- - Matchmaking details
-   - `matchmaking/queue.js` implements a simple queue. A callback can create a `BOT` game if no human opponent is available for a short time.
+---
 
- - Reconnect handling
-   - Server keeps simple reconnect timers per user to allow rejoin; if a user disconnects and reconnects quickly they can reattach to the existing game.
+## 🛠 Tech Stack
 
- Security and validation
- - The server validates that a `MOVE` comes from the player whose turn it is. It also checks column bounds and occupancy via `dropDisc` result.
- - The server persists only completed games; any intermediate game state is kept in memory.
+### Backend
+- **Node.js** — Runtime environment
+- **Express** — Web framework
+- **Socket.IO** — Real-time bidirectional communication
+- **MongoDB** — NoSQL database for persistence
+- **Mongoose** — MongoDB object modeling
+- **Kafka (KafkaJS)** — Event streaming platform
+- **UUID** — Unique identifier generation
 
- Scaling notes
- - Games are stored in-memory (Map). For horizontal scaling you must move game state to a shared store (Redis) or route specific sockets to a single game-hosting node via sticky sessions.
- - Kafka and Mongo scale independently and are suitable for production use when configured correctly.
+### Frontend
+- **React** — UI framework
+- **Vite** — Build tool and dev server
+- **Socket.IO Client** — WebSocket client
+- **Axios** — HTTP client
+- **Tailwind CSS** — Utility-first styling
 
- ---
+### Infrastructure
+- **Render** — Cloud hosting platform
+- **Docker** — Local containerization for MongoDB and Kafka
 
- ## Frontend — quick overview
+---
 
- - Uses React + Vite + Tailwind CSS
- - Socket wrapper in `src/socket/socket.js` exposes `connectSocket`, `sendMove` and the `socket` instance.
- - UI components:
-   - `Board.jsx` renders a 7×6 grid; clicking a column emits `sendMove(gameId, col)` which instructs the server to drop a disc.
-   - `Cell.jsx` renders discs and their colors; `GameStatus` shows the current status.
-   - `Leaderboard.jsx` fetches leaderboard data and shows top players.
+## 📂 Project Structure
 
- ---
+### Backend Structure
+```
+Backend/
+├── src/
+│   ├── config/
+│   │   ├── db.js              # MongoDB connection setup
+│   │   ├── kafka.js           # Kafka producer configuration
+│   │   └── socket.js          # Socket.IO initialization
+│   │
+│   ├── game/
+│   │   ├── boardLogic.js      # Win/draw detection logic
+│   │   ├── botEngine.js       # AI bot strategy implementation
+│   │   ├── gameManager.js     # Active game state management
+│   │   └── reconnect.js       # Player reconnection handling
+│   │
+│   ├── matchmaking/
+│   │   └── queue.js           # Player queue and matching logic
+│   │
+│   ├── models/
+│   │   ├── Analytics.js       # Analytics data schema
+│   │   ├── Game.js            # Game state schema
+│   │   └── Player.js          # Player profile schema
+│   │
+│   ├── routes/
+│   │   └── leaderboard.js     # Leaderboard API routes
+│   │
+│   ├── services/
+│   │   ├── analytics.js       # Analytics event processing
+│   │   ├── gameService.js     # Game business logic
+│   │   └── leaderboard.js     # Leaderboard data aggregation
+│   │
+│   ├── sockets/
+│   │   ├── game.socket.js     # Game-related socket handlers
+│   │   └── player.socket.js   # Player connection handlers
+│   │
+│   ├── app.js                 # Express app configuration
+│   └── server.js              # Server entry point
+│
+├── .env
+├── package.json
+└── package-lock.json
+```
 
- ## Event flow (simplified sequence)
+### Frontend Structure
+```
+Frontend/
+├── public/                     # Static assets
+│
+├── src/
+│   ├── api/
+│   │   └── leaderboard.js     # API service for leaderboard
+│   │
+│   ├── assets/                # Images, icons, etc.
+│   │
+│   ├── components/
+│   │   ├── Board.jsx          # Game board grid component
+│   │   ├── Cell.jsx           # Individual cell component
+│   │   ├── GameStatus.jsx     # Turn/status indicator
+│   │   ├── Leaderboard.jsx    # Leaderboard display
+│   │   ├── UsernameForm.jsx   # Username entry form
+│   │   └── WinnerPanel.jsx    # Game result display
+│   │
+│   ├── socket/
+│   │   └── socket.js          # Socket.IO client setup
+│   │
+│   ├── utils/
+│   │   └── sound.js           # Audio effects (optional)
+│   │
+│   ├── App.jsx                # Main app component
+│   ├── main.jsx               # React entry point
+│   ├── index.css              # Global styles
+│   └── App.css                # App-specific styles
+│
+├── .env
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+└── index.html
+```
 
- Client A                 Server                    Client B
-    |        JOIN          |                          |
-    |--------------------->|                          |
-    |        MATCH_FOUND   |                          |
-    |<---------------------|                          |
-    |   GAME_UPDATE(board) |                          |
-    |<---------------------|                          |
-    |   MOVE {gameId,col}  |                          |
-    |--------------------->|  dropDisc -> board'      |
-    |                      |------------------------->|
-    |                      |  GAME_UPDATE(board')     |
-    |<---------------------|                          |
+### Kafka Service Structure
+```
+kafka/
+├── consumer.js               # Kafka consumer implementation
+└── analyticsService.js       # Analytics processing service
+```
 
- When a win is detected the server emits the final board (`GAME_UPDATE`) and `GAME_OVER` (contains `{ winner, game }`).
+---
 
- ---
+## 🚀 Getting Started
 
- ## Environment variables
+### Prerequisites
+- **Node.js** (v16 or higher)
+- **npm** or **yarn**
+- **Docker** (for local MongoDB and Kafka)
+- **MongoDB** (local or cloud instance)
 
- Common env vars used by the repo (edit `.env` in Backend/):
+### Installation
 
- - `PORT` — server port (default: 5000)
- - `MONGO_URI` — MongoDB connection string
- - `KAFKA_BROKERS` — Kafka bootstrap servers (if using analytics)
- - `JWT_SECRET` — (not required in this simple app) for authentication if you add it
+#### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/yourusername/four-in-a-row.git
+cd four-in-a-row
+```
 
- ---
+#### 2️⃣ Start MongoDB & Kafka (Local Development)
+```bash
+docker compose up -d
+```
 
- ## Local development
+This starts:
+- MongoDB on `localhost:27017`
+- Kafka on `localhost:9092`
 
- 1. Start services (MongoDB, Kafka) or use `docker-compose` if configured:
+#### 3️⃣ Setup Backend
+```bash
+cd Backend
+npm install
+```
 
- ```bash
- docker compose up
- ```
+Create a `.env` file in the `Backend` directory:
+```env
+MONGO_URI=mongodb://localhost:27017/four-in-a-row
+KAFKA_ENABLED=true
+KAFKA_BROKER=localhost:9092
+PORT=5000
+```
 
- 2. Backend
+Start the backend server:
+```bash
+npm run dev
+```
 
- ```bash
- cd Backend
- npm install
- npm run dev
- ```
+Backend will run at **http://localhost:5000**
 
- 3. Frontend
+#### 4️⃣ Setup Frontend
+```bash
+cd Frontend
+npm install
+```
 
- ```bash
- cd Frontend
- npm install
- npm run dev
- ```
+Create a `.env` file in the `Frontend` directory:
+```env
+VITE_BACKEND_URL=http://localhost:5000
+```
 
- Open the frontend address shown by Vite (usually http://localhost:5173) and open two browser windows to test multiplayer.
+Start the frontend development server:
+```bash
+npm run dev
+```
 
- ---
+Frontend will run at **http://localhost:5173**
 
- ## Tests & Debugging
+#### 5️⃣ (Optional) Start Kafka Consumer
+```bash
+cd kafka
+npm install
+node consumer.js
+```
 
- - Use browser devtools -> Console / Network(WebSocket) to inspect `GAME_UPDATE` and `GAME_OVER` events.
- - Server logs will show matchmaking and game events. If a winner isn't reflected in the UI, inspect that the server emits the final `GAME_UPDATE` and `GAME_OVER` payloads.
+---
 
- ---
+## ⚙️ Environment Variables
 
- ## Deployment notes
+### Backend `.env`
 
- - For a production deployment:
-   - Use PM2 or Docker to run the backend processes.
-   - Use a managed MongoDB (Atlas) and a hosted Kafka (Confluent Cloud) or run Kafka in Docker with proper Zookeeper/replication.
-   - Configure CORS and appropriate socket origins in `server.js`.
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/four-in-a-row` |
+| `KAFKA_ENABLED` | Enable/disable Kafka analytics | `true` or `false` |
+| `KAFKA_BROKER` | Kafka broker address | `localhost:9092` |
+| `PORT` | Backend server port | `5000` |
 
- ---
+### Frontend `.env`
 
- ## Project Architecture (textual)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_BACKEND_URL` | Backend API URL | `http://localhost:5000` |
 
- 1. Clients (React) connect to server via Socket.IO.
- 2. Server (Node/Express) hosts Socket.IO and a few REST endpoints.
- 3. Game state: in-memory per game (Map). Persistence only at game end in MongoDB.
- 4. Analytics: server publishes events to Kafka; separate consumers can run analysis dashboards.
- 5. Leaderboard service updates player stats either via direct DB updates or via events consumed from Kafka.
+**Note:** On Render, Kafka is disabled (`KAFKA_ENABLED=false`) as Render does not support Kafka brokers in the free tier.
 
- Diagram (ASCII):
+---
 
- Client(s) <----> Socket.IO Server <----> MongoDB
-                        |
-                        +----> Kafka (analytics producer)
-                                    |
-                                    +----> Analytics Consumer / Dashboard
+## 🎮 Game Logic
 
- ---
+### Board Mechanics
+- **Grid Size:** 7 columns × 6 rows
+- **Turn-Based:** Players alternate placing discs
+- **Gravity:** Discs fall to the lowest available position in a column
 
- ## Next steps / Suggested improvements
+### Win Conditions
+A player wins by connecting **4 discs** in any of these patterns:
+- **Horizontal** — Four consecutive discs in a row
+- **Vertical** — Four consecutive discs in a column
+- **Diagonal** — Four consecutive discs diagonally (↗ or ↘)
 
- - Move live game state to Redis for clustering and persistence.
- - Add authentication and user profiles.
- - Add replay functionality for past games.
- - Improve bot AI and add difficulty levels.
- - Add mobile-specific UI optimizations and animations for disc drops.
+### Draw Condition
+If all 42 cells are filled with no winner, the game ends in a draw.
 
- ---
+---
 
- If you'd like, I can:
- - Add a PlantUML or image architecture diagram.
- - Add a CONTRIBUTING.md with development workflow.
+## 🤖 Bot Strategy
+
+The AI bot uses a **heuristic-based evaluation system** to make intelligent moves:
+
+### Priority Order
+1. **Win Immediately** — If the bot can win in one move, it takes it
+2. **Block Player Win** — If the player can win next turn, bot blocks them
+3. **Center Preference** — Prioritizes center columns (columns 3, 4) for better positioning
+4. **Strategic Positioning** — Evaluates moves based on potential winning paths
+
+### Bot Algorithm
+```
+For each possible move:
+  1. Check if move wins the game → play it
+  2. Check if move blocks opponent win → play it
+  3. Evaluate strategic value of position
+  4. Choose move with highest strategic value
+```
+
+This creates a **challenging but beatable** opponent that plays logically without being perfect.
+
+---
+
+## 🏗 Engineering Decisions
+
+### Why Single Backend Instance?
+
+The current architecture uses:
+- **In-memory game state** — Active games stored in memory
+- **In-memory matchmaking queue** — Player queue maintained in memory
+
+**Benefits of single instance:**
+- Simplified matchmaking logic
+- No race conditions in game state
+- Stable bot timer management
+- Guaranteed message delivery order
+
+**For horizontal scaling, you would need:**
+- Redis for shared state
+- Sticky sessions for WebSocket connections
+- Distributed locking for game state
+
+### Why WebSockets (Socket.IO)?
+- **Real-time updates** — Instant move synchronization
+- **Bidirectional communication** — Server can push updates to clients
+- **Reconnection support** — Built-in reconnection handling
+- **Room-based messaging** — Easy game isolation
+
+### Why MongoDB?
+- **Flexible schema** — Easy to iterate on data models
+- **JSON-like documents** — Natural fit for JavaScript/Node.js
+- **Quick prototyping** — Fast development cycle
+- **Aggregation pipeline** — Powerful leaderboard queries
+
+### Why Kafka?
+- **Event-driven architecture** — Decouples analytics from game logic
+- **Scalable analytics** — Process events asynchronously
+- **Production-ready pattern** — Industry-standard approach
+- **Future extensibility** — Easy to add more consumers
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 👤 Author
+
+**Your Name**
+- GitHub: [@yourusername](https://github.com/yourusername)
+
+---
+
+**⭐ If you found this project helpful, please consider giving it a star!**
