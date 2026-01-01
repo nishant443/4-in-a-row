@@ -30,7 +30,7 @@ export default function App() {
   // initialize mute from localStorage/state
   useEffect(() => {
     setMuted(!!mutedState);
-    try { localStorage.setItem('muted', mutedState ? 'true' : 'false'); } catch (e) {}
+    try { localStorage.setItem('muted', mutedState ? 'true' : 'false'); } catch (e) { }
   }, [mutedState]);
 
   function handleJoin(name) {
@@ -93,7 +93,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-extrabold">4 in a Row</h1>
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <div className="hidden sm:block text-sm opacity-80">Have fun — connect four!</div>
             <button
               className="bg-white/6 p-2 rounded-md hover:bg-white/10 flex items-center justify-center"
@@ -125,7 +125,7 @@ export default function App() {
                 <div className={`${flashOpponentMove ? 'ring-4 ring-amber-400 animate-pulse rounded-lg' : ''}`}>
                   <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} lastMove={lastMove} currentUsername={username} />
                 </div>
-                    ) : (
+              ) : (
                 <div className="py-12 text-center text-gray-300">Waiting for match... Join to start</div>
               )}
 

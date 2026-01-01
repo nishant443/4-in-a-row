@@ -7,7 +7,7 @@ const { sendGameEvent } = require("../services/analytics");
 const { updateLeaderboard } = require("../services/leaderboard");
 const GameModel = require("../models/Game");
 
-// 🔥 Correct mapping: username → socket
+
 const userSockets = new Map();
 
 /* ============================
@@ -25,9 +25,7 @@ function emitToPlayers(game, event, payload) {
     });
 }
 
-/* ============================
-   JOIN & MATCHMAKING
-============================ */
+/* JOIN & MATCHMAKING */
 
 function handleJoin(socket, data, io) {
     const { username } = data;
@@ -44,9 +42,7 @@ function handleJoin(socket, data, io) {
     }
 }
 
-/* ============================
-   GAME START
-============================ */
+/* GAME START*/
 
 function startGame(p1, p2, io, isBotGame = false) {
     const gameId = uuid();
@@ -62,9 +58,7 @@ function startBotGame(player, io) {
     startGame(player, "BOT", io, true);
 }
 
-/* ============================
-   PLAYER MOVE
-============================ */
+/* PLAYER MOVE */
 
 async function handleMove(socket, data, io) {
     const { gameId, col } = data;
@@ -97,9 +91,7 @@ async function handleMove(socket, data, io) {
     }
 }
 
-/* ============================
-   BOT MOVE
-============================ */
+/* BOT MOVE*/
 
 async function handleMoveBot(gameId, col) {
     const game = getGame(gameId);
@@ -124,9 +116,7 @@ async function handleMoveBot(gameId, col) {
     emitToPlayers(game, "GAME_UPDATE", game);
 }
 
-/* ============================
-   FINISH GAME
-============================ */
+/* FINISH GAME */
 
 async function finishGame(game, winner) {
     emitToPlayers(game, "GAME_UPDATE", game);
@@ -154,9 +144,7 @@ async function finishGame(game, winner) {
     removeGame(game.gameId);
 }
 
-/* ============================
-   DISCONNECT CLEANUP
-============================ */
+/* DISCONNECT CLEANUP */
 
 function onDisconnect(socket) {
     if (socket.username) {

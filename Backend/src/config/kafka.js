@@ -3,7 +3,6 @@ const { Kafka } = require("kafkajs");
 let kafkaProducer = null;
 
 async function connectKafka() {
-    // 🚫 Disable Kafka when not configured
     if (process.env.KAFKA_ENABLED !== "true") {
         console.log("Kafka disabled (no broker configured)");
         return null;
