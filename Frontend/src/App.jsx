@@ -5,7 +5,7 @@ import UsernameForm from "./components/UsernameForm";
 import GameStatus from "./components/GameStatus";
 import Leaderboard from "./components/Leaderboard";
 import WinnerPanel from "./components/WinnerPanel";
-import { playMoveSound, playWinSound, unlockAudioOnUserGesture } from "./utils/sound";
+import { playMoveSound, playWinSound, unlockAudioOnUserGesture, setMuted, isMuted } from "./utils/sound";
 
 export default function App() {
   const [username, setUsername] = useState("");
@@ -13,6 +13,8 @@ export default function App() {
   const [status, setStatus] = useState("Enter username");
   const [winner, setWinner] = useState(null);
   const [flashOpponentMove, setFlashOpponentMove] = useState(false);
+  const [lastMove, setLastMove] = useState(null);
+  const [mutedState, setMutedState] = useState(!!isMuted() || (localStorage.getItem('muted') === 'true'));
   const lastMovesRef = useRef(0);
   const usernameRef = useRef(username);
 
@@ -23,6 +25,12 @@ export default function App() {
   useEffect(() => {
     usernameRef.current = username;
   }, [username]);
+
+  // initialize mute from localStorage/state
+  useEffect(() => {
+    setMuted(!!mutedState);
+    try { localStorage.setItem('muted', mutedState ? 'true' : 'false'); } catch (e) {}
+  }, [mutedState]);
 
   function handleJoin(name) {
     setUsername(name);
@@ -51,6 +59,7 @@ export default function App() {
         const last = gameData.moves[newLen - 1];
         const isOpponent = last.player !== usernameRef.current;
         playMoveSound(isOpponent);
+        setLastMove(last);
         if (isOpponent) {
           setFlashOpponentMove(true);
           setTimeout(() => setFlashOpponentMove(false), 800);
@@ -78,7 +87,16 @@ export default function App() {
       <div className="max-w-5xl mx-auto">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-extrabold">4 in a Row</h1>
-          <div className="hidden sm:block text-sm opacity-80">Have fun — connect four!</div>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block text-sm opacity-80">Have fun — connect four!</div>
+            <button
+              className="bg-white/6 text-sm px-3 py-1 rounded-md hover:bg-white/10"
+              onClick={() => setMutedState(s => !s)}
+              aria-pressed={mutedState}
+            >
+              {mutedState ? 'Unmute' : 'Mute'}
+            </button>
+          </div>
         </header>
 
         <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -88,7 +106,7 @@ export default function App() {
 
               {game ? (
                 <div className={`${flashOpponentMove ? 'ring-4 ring-amber-400 animate-pulse rounded-lg' : ''}`}>
-                  <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} />
+                  <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} lastMove={lastMove} currentUsername={username} />
                 </div>
                     ) : (
                 <div className="py-12 text-center text-gray-300">Waiting for match... Join to start</div>

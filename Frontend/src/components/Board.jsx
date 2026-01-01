@@ -1,6 +1,6 @@
 import Cell from "./Cell";
 
-export default function Board({ board, onMove, players = [], isBotGame = false }) {
+export default function Board({ board, onMove, players = [], isBotGame = false, lastMove = null, currentUsername = null }) {
     return (
         <div className="w-full mx-auto p-1 sm:p-3 bg-gradient-to-b from-slate-800 to-slate-700 rounded-lg shadow-inner overflow-hidden box-border max-w-[98vw] sm:max-w-[760px] md:max-w-[640px] lg:max-w-[520px]">
             <div className="w-full bg-sky-700 rounded">
@@ -13,6 +13,8 @@ export default function Board({ board, onMove, players = [], isBotGame = false }
                                     onClick={() => onMove(c)}
                                     players={players}
                                     isBotGame={isBotGame}
+                                    isLastMove={lastMove && lastMove.row === r && lastMove.col === c}
+                                    isCurrentUserMove={currentUsername && cell === currentUsername}
                                 />
                             </div>
                         ))
