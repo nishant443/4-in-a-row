@@ -1,14 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { socket, connectSocket, sendMove } from "./socket/socket";
 import Board from "./components/Board";
 import UsernameForm from "./components/UsernameForm";
 import GameStatus from "./components/GameStatus";
 import Leaderboard from "./components/Leaderboard";
+import WinnerPanel from "./components/WinnerPanel";
+import { playMoveSound, playWinSound, unlockAudioOnUserGesture } from "./utils/sound";
 
 export default function App() {
   const [username, setUsername] = useState("");
   const [game, setGame] = useState(null);
   const [status, setStatus] = useState("Enter username");
+  const [winner, setWinner] = useState(null);
+  const [flashOpponentMove, setFlashOpponentMove] = useState(false);
+  const lastMovesRef = useRef(0);
+  const usernameRef = useRef(username);
+
+  // ensure audio can play after first interaction
+  useEffect(() => unlockAudioOnUserGesture(), []);
+
+  // keep usernameRef in sync with username state
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
 
   function handleJoin(name) {
     setUsername(name);
@@ -25,10 +39,25 @@ export default function App() {
   useEffect(() => {
     socket.on("MATCH_FOUND", data => {
       setStatus(`Playing vs ${data.opponent}`);
-      setGame({ gameId: data.gameId, board: Array(6).fill().map(() => Array(7).fill(null)) });
+      setWinner(null);
+      setGame({ gameId: data.gameId, board: Array(6).fill().map(() => Array(7).fill(null)), players: [usernameRef.current, data.opponent] });
     });
 
     socket.on("GAME_UPDATE", gameData => {
+      // play move sound only when moves array grows
+      const prevLen = lastMovesRef.current || 0;
+      const newLen = (gameData.moves && gameData.moves.length) || 0;
+      if (newLen > prevLen) {
+        const last = gameData.moves[newLen - 1];
+        const isOpponent = last.player !== usernameRef.current;
+        playMoveSound(isOpponent);
+        if (isOpponent) {
+          setFlashOpponentMove(true);
+          setTimeout(() => setFlashOpponentMove(false), 800);
+        }
+      }
+      lastMovesRef.current = newLen;
+
       setGame(gameData);
       setStatus(`Turn: ${gameData.currentTurn}`);
     });
@@ -36,6 +65,9 @@ export default function App() {
     socket.on("GAME_OVER", data => {
       if (data.game) setGame(data.game);
       setStatus(`Winner: ${data.winner}`);
+      setWinner(data.winner);
+      const isWinner = data.winner === usernameRef.current;
+      playWinSound(isWinner);
     });
 
     return () => socket.off();
@@ -55,17 +87,27 @@ export default function App() {
               {!username && <div className="mb-4"><UsernameForm onSubmit={handleJoin} /></div>}
 
               {game ? (
-                <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} />
+                <div className={`${flashOpponentMove ? 'ring-4 ring-amber-400 animate-pulse rounded-lg' : ''}`}>
+                  <Board board={game.board} onMove={handleMove} players={game.players} isBotGame={game.isBotGame} />
+                </div>
                     ) : (
                 <div className="py-12 text-center text-gray-300">Waiting for match... Join to start</div>
               )}
 
-              <div className="mt-4"><GameStatus status={status} /></div>
+              <div className="mt-4 flex items-center gap-3">
+                <GameStatus status={status} />
+                {game && username && game.currentTurn === username && (
+                  <div className="text-amber-300 font-semibold px-3 py-1 bg-amber-900/20 rounded-full animate-pulse">Your Turn</div>
+                )}
+              </div>
             </div>
           </section>
 
           <aside className="md:col-span-1">
-            <Leaderboard />
+            <div className="space-y-4">
+              <WinnerPanel winner={winner} />
+              <Leaderboard />
+            </div>
           </aside>
         </main>
       </div>
