@@ -87,14 +87,25 @@ export default function App() {
       <div className="max-w-5xl mx-auto">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-extrabold">4 in a Row</h1>
-          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
             <div className="hidden sm:block text-sm opacity-80">Have fun — connect four!</div>
             <button
-              className="bg-white/6 text-sm px-3 py-1 rounded-md hover:bg-white/10"
+              className="bg-white/6 p-2 rounded-md hover:bg-white/10 flex items-center justify-center"
               onClick={() => setMutedState(s => !s)}
               aria-pressed={mutedState}
+              aria-label={mutedState ? 'Unmute' : 'Mute'}
             >
-              {mutedState ? 'Unmute' : 'Mute'}
+              {mutedState ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5v14l11-7L9 5z" />
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M2 2l20 20" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5v14l11-7L9 5z" />
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 010 0" />
+                </svg>
+              )}
             </button>
           </div>
         </header>
