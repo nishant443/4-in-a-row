@@ -17,6 +17,7 @@ export default function App() {
   const [mutedState, setMutedState] = useState(!!isMuted() || (localStorage.getItem('muted') === 'true'));
   const lastMovesRef = useRef(0);
   const usernameRef = useRef(username);
+  const lastMoveTimerRef = useRef(null);
 
   // ensure audio can play after first interaction
   useEffect(() => unlockAudioOnUserGesture(), []);
@@ -59,7 +60,12 @@ export default function App() {
         const last = gameData.moves[newLen - 1];
         const isOpponent = last.player !== usernameRef.current;
         playMoveSound(isOpponent);
+
+        // set last move and clear it after a short duration so only one disc blinks
         setLastMove(last);
+        if (lastMoveTimerRef.current) clearTimeout(lastMoveTimerRef.current);
+        lastMoveTimerRef.current = setTimeout(() => setLastMove(null), 1400);
+
         if (isOpponent) {
           setFlashOpponentMove(true);
           setTimeout(() => setFlashOpponentMove(false), 800);
